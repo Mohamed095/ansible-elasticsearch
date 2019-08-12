@@ -1,0 +1,38 @@
+#!/bin/bash
+
+echo ------------------------------------------
+echo deleting kpi indexes ---------------------
+echo ------------------------------------------
+echo ------------------------------------------
+curl -S -X DELETE {{ url_es }}/sla*
+echo
+echo ------------------------------------------
+curl -S -X DELETE {{ url_es }}/_template/tpl_sla*
+echo
+echo ------------------------------------------
+echo creating kpi mappings --------------------
+echo ------------------------------------------
+echo ------------------------------------------
+curl -S -X PUT {{ url_es }}/_template/tpl_sla_kpi_config?pretty -H "Content-Type: application/json" --data-binary @{{ mapping_tmp }}/indexes/template_sla_kpi_config.json
+echo ------------------------------------------
+curl -S -X PUT {{ url_es }}/_template/tpl_sla_meter?pretty -H "Content-Type: application/json" --data-binary @{{ mapping_tmp }}/indexes/template_sla_meter.json
+echo ------------------------------------------
+curl -S -X PUT {{ url_es }}/_template/tpl_sla_demand?pretty -H "Content-Type: application/json" --data-binary @{{ mapping_tmp }}/indexes/template_sla_demand.json
+echo ------------------------------------------
+curl -S -X PUT {{ url_es }}/_template/tpl_sla_collect_result?pretty -H "Content-Type: application/json" --data-binary @{{ mapping_tmp }}/indexes/template_sla_collect_result.json
+echo ------------------------------------------
+curl -S -X PUT {{ url_es }}/_template/tpl_sla_capability?pretty -H "Content-Type: application/json" --data-binary @{{ mapping_tmp }}/indexes/template_sla_capability.json
+echo ------------------------------------------
+curl -S -X PUT {{ url_es }}/_template/tpl_sla_meter_daily_metrics?pretty -H "Content-Type: application/json" --data-binary @{{ mapping_tmp }}/indexes/template_sla_meter_daily_metrics.json
+echo ------------------------------------------
+curl -S -X PUT {{ url_es }}/_template/tpl_sla_kpi_daily?pretty -H "Content-Type: application/json" --data-binary @{{ mapping_tmp }}/indexes/template_sla_kpi_daily.json
+echo ------------------------------------------
+curl -S -X PUT {{ url_es }}/_template/tpl_sla_kpi_weekly?pretty -H "Content-Type: application/json" --data-binary @{{ mapping_tmp }}/indexes/template_sla_kpi_weekly.json
+echo ------------------------------------------
+curl -S -X PUT {{ url_es }}/_template/tpl_sla_kpi_monthly?pretty -H "Content-Type: application/json" --data-binary @{{ mapping_tmp }}/indexes/template_sla_kpi_monthly.json
+echo ------------------------------------------
+curl -S -X PUT {{ url_es }}/_template/tpl_sla_meter_status_history?pretty -H "Content-Type: application/json" --data-binary @{{ mapping_tmp }}/indexes/template_sla_meter_status_history.json
+echo ------------------------------------------
+curl -S -X PUT {{ url_es }}/_template/tpl_sla_meter_state_evolution?pretty -H "Content-Type: application/json" --data-binary @{{ mapping_tmp }}/indexes/template_sla_meter_state_evolution.json
+echo ------------------------------------------
+

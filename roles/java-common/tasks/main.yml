@@ -1,0 +1,58 @@
+
+- name: Check if java is installed
+  shell: "java -version"
+  become: yes
+  register: java_result
+  ignore_errors: True
+
+- debug:
+    msg: "Failed - Java is not installed"
+  when: java_result is failed
+
+- debug:
+    msg: "Success - Java is installed"
+  when:  java_result is success
+
+- name: Fetch Java version
+  shell: java -version 2>&1 | grep version | awk '{print $3}' | sed 's/"//g'
+  register: java_version
+  when:  java_result is success
+
+- assert:
+    that:
+      - java_version.stdout | version_compare( {{ java_version_short }} , '==')
+  ignore_errors: True
+  register: output
+  when:  java_result is success
+
+
+- debug:
+    var:  "output.msg"
+  when:  java_result is success
+- name: run my module
+  get_checksum:
+    raw: "{{ raw_name }}"
+    repo: "java"
+    option: "bin"
+    version: "{{ java_version_short }}/jdk/x86_64"
+    address: "{{ nexus_ip }}"
+    hash_type: "sha1"
+  register: resultat
+  when: ( java_result is failed ) or  ( output.msg  == "Assertion failed")
+
+- name: Download jdk
+  get_url:
+    url: "{{ java_url_repository }}/{{ java_version_short }}/jdk/x86_64/{{ java_rpm_file }}"
+    dest: "/tmp"
+    checksum: "sha1:{{resultat.msg }}"
+  when: ( java_result is failed ) or ( output.msg == "Assersition failed")
+
+
+
+- name: Install package.
+  yum:
+     name: "/tmp/{{ java_rpm_file }}"
+     state: present
+  when: ( java_result is failed ) or ( output.msg == "Assersition failed" )
+
+

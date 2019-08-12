@@ -1,0 +1,12 @@
+---
+
+- name: Deploy sla mapping to your ES cluster
+  hosts: es_node_1
+  become: yes
+  gather_facts: True
+  tasks:
+    - name: Deploy sla mapping
+      include_role:
+        name: elasticsearch-deploy-sla-mapping
+      vars:
+        es_repo: elasticsearch-sla

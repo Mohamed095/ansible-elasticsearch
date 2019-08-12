@@ -1,0 +1,12 @@
+#!/bin/bash
+
+echo delete all from kibana --------------------
+curl -S -X DELETE {{ url_es }}/.kibana -H "Content-Type: application/json"
+echo kibana index patterns --------------------
+curl -S -X PUT {{ url_es }}/_bulk?pretty -H "Content-Type: application/json" --data-binary @{{ mapping_tmp }}/indexes/datasets/kibana-index-patterns-data.json --compressed
+echo kibana default settings----------------------
+curl -S -X PUT {{ url_es }}/_bulk?pretty -H "Content-Type: application/json" --data-binary @{{ mapping_tmp }}/indexes/datasets/kibana-config-data.json --compressed
+echo kibana visualizations----------------------
+curl -S -X PUT {{ url_es }}/_bulk?pretty -H "Content-Type: application/json" --data-binary @{{ mapping_tmp }}/indexes/datasets/kibana-visualizations-data.json --compressed
+echo kibana dashboards----------------------
+curl -S -X PUT {{ url_es }}/_bulk?pretty -H "Content-Type: application/json" --data-binary @{{ mapping_tmp }}/indexes/datasets/kibana-dashboards-data.json --compressed

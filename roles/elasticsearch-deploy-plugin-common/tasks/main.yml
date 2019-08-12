@@ -1,0 +1,108 @@
+---
+# tasks file for elasticsearch-deploy-plugin
+
+- name: Create a temporary folder for plugins
+  file:
+    path: "{{ plugins_tmp }}"
+    state: directory
+    recurse: yes
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+    mode: 0755
+
+
+- name: run my module
+  get_checksum: 
+    raw: "{{ raw_name }}"
+    repo: "{{ es_repo }}"
+    option: plugins
+    version: "{{ plugins_version }}"
+    address: "{{ nexus_ip }}"
+    hash_type: sha1
+  register: resu
+
+
+- name: Download plugins for es
+  get_url:
+    url: "{{ plugins_url_repository }}/{{ plugins_version }}/{{ plugins_name }}-{{ plugins_version }}.zip"
+    dest: "{{ plugins_tmp }}"
+    checksum: "sha1:{{resu.msg }}"
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+  register: There_is_plugins
+
+
+- name: Check installed elasticsearch plugins
+  become: yes
+  shell: "ls {{ plugins_dir }}"
+  register: installed_plugins
+  changed_when: False
+  ignore_errors: yes
+  environment:
+    CONF_DIR: "{{ es_conf_dir }}"
+    ES_PATH_CONF: "{{ es_conf_dir }}"
+  check_mode: no
+
+- name: set fact es_plugins_reinstall to true
+  set_fact: es_plugins_reinstall=true
+
+- name: set fact plugins_to_remove to install_plugins.stdout_lines
+  set_fact: plugins_to_remove= "{{ installed_plugins.stdout_lines | default([]) }}"
+  when: es_plugins_reinstall
+
+- name: This command will install customized plugins 
+  become: yes
+  command: "{{ plugins_dir }} install  file:///{{ plugins_tmp }}/{{ plugins_name }}-{{ plugins_version }}.zip"
+  notify: restart elasticsearch
+  environment:
+    CONF_DIR: "{{ es_conf_dir }}"
+    ES_PATH_CONF: "{{ es_conf_dir }}"
+
+
+- name: "Add line in ingest-kpi.properties 0"
+  lineinfile:
+    path: "{{ es_home }}/plugins/{{ plugins_name }}/ingest-kpi.properties"
+    regexp: '^es.hosts.address'
+    line: "es.hosts.address="
+    state: present
+  when: plugins_name == "siconia-kpi-ingests"
+- name: "Add line in ingest-kpi.properties 1"
+  lineinfile:
+    path: "{{ es_home }}/plugins/{{ plugins_name }}/ingest-kpi.properties"
+    insertafter: "es.hosts.address="
+    line: "{% for server in groups['esdata'] %}
+        - {{ server }}:{{ es_node_transport_port }}
+          {% endfor %}"
+    state: present
+  when: plugins_name == "siconia-kpi-ingests"
+- name: "Add line in sla-quartz 0"
+  lineinfile:
+    path: "{{ es_home }}/plugins/{{ plugins_name }}/sla-quartz.properties"
+    regexp: '^org.quartz.dataSource.slaDS.URL'
+    line: "org.quartz.dataSource.slaDS.URL=jdbc:postgresql://{{ sla_quartz_db_host }}:{{ sla_quartz_db_port }}/{{ sla_quartz_db_name }}"
+    state: present
+  when: plugins_name == "siconia-kpi-ingests"
+
+- name: "Add line in sla_quartz 1"
+  lineinfile:
+    path: "{{ es_home }}/plugins/{{ plugins_name }}/sla-quartz.properties"
+    regexp: '^org.quartz.dataSource.slaDS.user'
+    line: "org.quartz.dataSource.slaDS.user={{ sla_quartz_db_user }}"
+    state: present
+  when: plugins_name == "siconia-kpi-ingests"
+
+- name: "Add line in sla_quartz 2"
+  lineinfile:
+    path: "{{ es_home }}/plugins/{{ plugins_name }}/sla-quartz.properties"
+    regexp: '^org.quartz.dataSource.slaDS.password'
+    line: "org.quartz.dataSource.slaDS.password={{ sla_quartz_db_pass }}"
+    state: present
+  when: plugins_name == "siconia-kpi-ingests"
+
+
+- name: delete the temporary folder
+  file:
+   path: "{{ plugins_tmp }}"
+   state: absent
+   owner: "{{ es_user }}"
+   group: "{{ es_group }}"

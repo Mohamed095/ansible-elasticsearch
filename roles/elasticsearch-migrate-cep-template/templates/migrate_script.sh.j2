@@ -1,0 +1,19 @@
+#!/bin/bash
+if [ ! $# -eq 2 ]
+  then
+    echo "No arguments supplied"
+    echo "argument 1 = adresse source (exemple: http://Elasticsearch_5.4:9200)"
+    echo "argument 2 = adresse destination (exemple: http://Elasticsearch_6.5.1:9200)"
+    echo "don\'t forget to add reindex.remote.whitelist: \"Elasticsearch_5.4:9200\" in the elasticsearch.yml of the 6.5.1 node"
+    exit 0
+fi
+indices=`curl -s -X GET ${1}/_cat/indices | cut -d ' ' -f 3`
+for i in $indices
+do
+               echo 'copying index : '$i' from '$1' to'$2
+               echo ''
+               curl -XPOST ${2}/_reindex -H 'Content-Type: application/json' -d '{"source":{"remote":{"host": "'${1}'"},"index": "'$i'"},"dest": {"index": "'$i'","version_type": "external"}}'
+               echo ''
+               echo ''
+               echo ''
+done;

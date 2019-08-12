@@ -1,0 +1,17 @@
+---
+# tasks file for elasticsearch-common
+
+- name: Include download
+  include: download-es.yml
+
+- name: Include elasticsearch-config.yml
+  include: elasticsearch-config.yml
+
+- name: Delete all temp folders
+  file:
+   path: "{{ item }}"
+   state: absent
+   owner: "{{ es_user }}"
+   group: "{{ es_group }}"
+  loop:
+   - "{{es_tmp}}"

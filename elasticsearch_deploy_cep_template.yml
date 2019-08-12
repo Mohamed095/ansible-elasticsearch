@@ -1,0 +1,12 @@
+---
+
+- name: Deploy cep template to your ES cluster
+  hosts: es_node_1
+  become: yes
+  gather_facts: True
+  tasks:
+    - name: Deploy cep template
+      include_role:
+        name: elasticsearch-deploy-cep-template
+      vars:
+        es_repo: elasticsearch-cep

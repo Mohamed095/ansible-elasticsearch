@@ -1,0 +1,31 @@
+---
+
+- name: Uninstall Elasticsearch 
+  hosts: esdata
+  become: yes
+  gather_facts: True
+  tasks:
+   
+    - name: Reload and disable elasticsarch service
+      systemd:
+        daemon-reload: yes
+        enabled: no
+        state: stopped
+        name: elasticsearch
+
+    - name: Delete all created directories
+      file:
+       path: "{{ item }}"
+       state: absent
+       owner: "{{ es_user }}"
+       group: "{{ es_group }}"
+      loop:
+       - "{{ es_home }}"
+       - "{{ es_pid_dir }}"
+       - "{{ es_log_dir }}"
+       - "{{ es_systemd_script }}"
+
+    - name: Uninstall java
+      yum:
+        name: java
+        state: absent

@@ -1,0 +1,7 @@
+---
+- name: "test elasticsearch"
+  hosts: localhost
+  tasks:
+    - include_role: { name: "elasticsearch-common", tasks_from: "elasticsearch-config" }
+
+

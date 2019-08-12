@@ -1,0 +1,23 @@
+---
+- name: Deploy ingest & cep plugins to your ES cluster
+  hosts: esdata
+  become: yes
+  gather_facts: True
+  tasks:
+#    - name: Deploy ingest plugin
+#      include_role:
+#        name: elasticsearch-deploy-plugin-common 
+#      vars:
+#        es_repo: elasticsearch-sla
+#        plugins_name: siconia-kpi-ingests
+#        plugins_version: 1.0.26
+
+    - name: Deploy cep plugin
+      include_role:
+        name:  elasticsearch-deploy-plugin-common
+      vars:
+        es_repo: elasticsearch-cep
+        plugins_name: elasticsearch-sql
+        plugins_version: 6.5.1.0
+
+        

@@ -1,0 +1,57 @@
+---
+
+- name: Create a temporary folder for elasticsearch
+  file:
+    path: "{{ es_tmp }}"
+    state: directory
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+    mode: 0755
+
+- name: Create a home for elasticsearch
+  file:
+    path: "{{ es_home }}"
+    state: directory
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+    mode: 0755
+
+- name: Run my module
+  become: yes
+  get_checksum: 
+    raw: "{{ raw_name }}"
+    repo: "{{ es_repo }}"
+    option: bin
+    version: "{{ es_version }}"
+    address: "{{ nexus_ip }}" 
+    hash_type: sha1
+  register: result
+
+- name: Téléchargement de es
+  get_url:
+    url: "{{ es_url_repository }}/{{ es_version }}/{{ es_package }}-{{ es_version }}{{es_tar}}"
+    dest: "{{ es_tmp }}"
+    checksum: "sha1:{{result.msg }}"
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+
+
+- name: Extract es
+  unarchive:
+    src: "{{ es_tmp }}/{{ es_package }}-{{ es_version }}{{es_tar}}"
+    dest: "{{ es_tmp }}"
+    remote_src: yes
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+    extra_opts: [--strip-components=1]
+
+
+- name: Run the command (mv)
+  become: yes
+  shell: "mv {{ es_tmp }}/* {{ es_home }}/"
+
+
+- name: Remove the downloaded File
+  file:
+   path: "{{ es_home }}/{{ es_package }}-{{ es_version }}{{es_tar}}"
+   state: absent

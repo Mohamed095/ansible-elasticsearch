@@ -1,0 +1,69 @@
+---
+# tasks file for elasticsearch-undeploy-template
+- name: Create a temporary folder for undeploying the template template
+  file:
+    path: "{{ template_tmp }}"
+    state: directory
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+    mode: 0755
+
+- name: run my module
+  become: yes
+  get_checksum:
+    raw: "{{ raw_name }}"
+    repo: "{{ es_repo }}"
+    option: undeploy-template
+    version: "{{ cep_version }}"
+    address: "{{ nexus_ip }}"
+    hash_type: sha1
+  register: result
+
+- name: Download the template
+  get_url:
+    url: "{{ template_undeploy_url_repository }}/{{ cep_version }}/{{ template_undeploy_package }}-v{{ cep_version }}.tar.gz"
+    dest: "{{ template_tmp }}"
+    checksum: "sha1:{{result.msg }}"
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+
+
+- name: extract the template
+  unarchive:
+    src: "{{ template_tmp }}/{{ template_undeploy_package }}-v{{ cep_version }}.tar.gz"
+    dest: "{{ template_tmp }}"
+    remote_src: yes
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+    extra_opts: [--strip-components=1]
+
+- name: Remove the downloaded template
+  file:
+   path: "{{ template_tmp }}/{{ template_undeploy_package }}-v{{ cep_version }}.tar.gz"
+   state: absent
+
+- name: Copy drop_script.sh File
+  become: yes
+  template:
+    src: drop_script.sh.j2
+    dest: "{{ template_tmp }}/drop_script.sh"
+    owner: "{{ es_user }}"
+- file:
+    path: "{{ template_tmp }}/drop_script.sh"
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+    mode: 0755
+
+- name: dropping cep index and templates script 
+  shell: "{{ template_tmp }}/drop_script.sh"
+  register: output
+
+- debug: var=output.stdout_lines
+
+
+- name: delete the temporary folder
+  file:
+   path: "{{ template_tmp }}"
+   state: absent
+   owner: "{{ es_user }}"
+   group: "{{ es_group }}"

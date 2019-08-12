@@ -1,0 +1,96 @@
+---
+
+- name: Install Elasticsearch
+  hosts: esdata
+  become: yes
+  gather_facts: True
+  pre_tasks:
+
+    - name: Update the /etc/hosts file with node name.
+      tags: etchostsupdate
+      become: yes
+      become_user: root
+      lineinfile: 
+        dest: /etc/hosts
+        line:  '{{ hostvars[item]["ansible_host"] }} {{ hostvars[item]["ansible_hostname"] }} {{ hostvars[item]["ansible_nodename"] }}'
+        state: present
+      when:   ansible_hostname != '{{ item }}'
+      with_items: "{{groups['esdata']}}"
+
+  tasks:
+
+    - name: Create group for es.
+      group:
+        name: "{{ es_group }}"
+        gid: "3001"
+        state: present
+
+    - name: Create user for es.
+      user:
+        name: "{{ es_user }}"
+        uid: "2004"
+        group: "{{ es_group }}"
+        state: present
+
+    - name: Set  hostname as mentionned in incentory file.
+      hostname:
+        name: "{{ inventory_hostname }}" 
+   
+    - name: Check that the elasticsearch.yml exists
+      stat:
+        path: "{{ es_home }}/config/elasticsearch.yml"
+      register: stat_result
+
+    - name: Check if es port is listening.
+      wait_for:
+        host: "{{ hostvars[item]['ansible_host'] }}"
+        port: "{{ hostvars[item]['es_node_http_port'] }}"
+        delay: 5
+        timeout: 10
+        msg: "Timeout waiting for 9200 to respond"
+      with_items: "{{groups['esdata']}}"
+      register: es_result
+      ignore_errors: yes 
+
+    - debug:
+        msg: "Failed - Elasticsearch is not installed"
+      when: es_result is failed or stat_result.stat.exists == False
+
+    - debug:
+        msg: "Success - Elasticsearch is installed "
+      when:  es_result is success and stat_result.stat.exists == True
+
+    - name: Ensure python-httplib2 is installed.
+      yum: 
+        name: python-httplib2
+        state: present
+    
+    - set_fact:
+        url: "http://{{ hostvars[item]['ansible_host'] }}:{{ hostvars[item]['es_node_http_port'] }}"
+      with_items: "{{groups['esdata']}}"
+
+    - name: Check current version.
+      uri: 
+        url: "{{ url }}"
+        method: GET
+      register: version_found
+      retries: 10
+      delay: 10
+      when:  es_result is success
+
+    - name: Display Current Elasticsearch Version.
+      debug: var=version_found.json.version.number
+      when:  es_result is success
+    
+    - include_role:
+        name: java-common
+      when:  es_result is failed
+
+    - include_role:
+        name: elasticsearch-common
+      vars:
+        es_repo: elasticsearch
+      when:  es_result is failed 
+
+
+

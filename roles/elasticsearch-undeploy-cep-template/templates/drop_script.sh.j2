@@ -1,0 +1,10 @@
+#!/bin/bash
+
+sumTpl=`curl -S -X GET {{ url_es }}/_cat/templates | wc -l`
+if [[ "$sumTpl" -gt 0 ]];
+then
+    echo ------------------------------------------
+    echo Delete all CEP templates -----------------
+    echo ------------------------------------------
+    curl -S -X DELETE {{ url_es }}/_template/cep_*
+fi

@@ -1,0 +1,8 @@
+---
+# defaults file for java-common
+java_home: /usr/java/jdk1.8.0_162
+java_version: 'java version "1.8.0_162"'
+java_version_short: '1.8.0_162'
+siconia_nexus_raw_url: http://{{ nexus_ip }}:{{ nexus_port }}/repository/dyco-raw-group
+java_url_repository: "{{ siconia_nexus_raw_url }}/java/bin/{{ java_version_short }}/jdk/x86_64"
+java_rpm_file: jdk-8u162-linux-x64.rpm

@@ -1,0 +1,93 @@
+---
+# tasks file for elasticsearch-deploy-sla-mapping
+
+- name: Create a temporary folder for mapping
+  file:
+    path: "{{ mapping_tmp }}"
+    state: directory
+    recurse: yes
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+    mode: 0755
+   
+- name: run my module
+  get_checksum: 
+    raw: "{{ raw_name }}"
+    repo: "{{ es_repo }}"
+    option: "mapping-and-template"
+    version: "{{ sla_version }}"
+    address: "{{ nexus_ip }}"
+    hash_type: sha1
+  register: res
+ 
+- name: téléchargement de mapping
+  get_url:
+    url: "{{ mapping_url_repository }}/{{ sla_version }}/{{ mapping_package }}-{{ sla_version }}.tar.gz"
+    dest: "{{ mapping_tmp }}"
+    checksum: "sha1:{{res.msg }}"
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+
+- name: extract mapping
+  unarchive:
+    src: "{{ mapping_tmp }}/{{ mapping_package }}-{{ sla_version }}.tar.gz"
+    dest: "{{ mapping_tmp }}"
+    remote_src: yes
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+    extra_opts: [--strip-components=1]
+
+- name: delete the downloaded file
+  file:
+    path: "{{ mapping_tmp }}/{{ mapping_package }}-{{ sla_version }}.tar.gz"
+    state: absent
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+
+- name: Dynamic fill of config files
+  vars:
+  template:
+   src: "{{ item.src }}"
+   dest: "{{ item.dest }}"
+   owner: "{{ es_user }}"
+   group: "{{ es_group }}"
+   mode: 0644
+   force: yes
+  loop:
+   - {src: 'kpi-es-init-mappings.sh.j2', dest: '{{ mapping_tmp }}/kpi-es-init-mappings.sh'}
+   - {src: 'kpi-es-init-datasets.sh.j2', dest: '{{ mapping_tmp }}/kpi-es-init-datasets.sh'}
+   
+- file:
+    path: "{{ mapping_tmp }}/kpi-es-init-mappings.sh"
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+    mode: 0755
+
+
+
+- name: Running kpi-es-init-mappings script
+  shell: "{{ mapping_tmp }}/kpi-es-init-mappings.sh"
+  register: output
+
+- debug: var=output.stdout_lines
+
+
+- file:
+    path: "{{ mapping_tmp }}/kpi-es-init-datasets.sh"
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+    mode: 0755
+
+- name: Running kpi-es-init-mappings script
+  shell: "{{ mapping_tmp }}/kpi-es-init-datasets.sh"
+  register: output
+
+- debug: var=output.stdout_lines
+
+
+- name: delete the temporary folder
+  file:
+   path: "{{ mapping_tmp }}"
+   state: absent
+   owner: "{{ es_user }}"
+   group: "{{ es_group }}"

@@ -1,0 +1,105 @@
+---
+
+- name: Create all directories needed for installation
+  file:
+   path: "{{ item }}"
+   state: directory
+   owner: "{{ es_user }}"
+   group: "{{ es_group }}"
+   mode: 0755             
+  loop:
+   - "{{ es_pid_dir }}"
+   - "{{ es_log_dir }}"
+
+
+- name: Install rsync package
+  yum:
+     name: rsync
+     state: present
+
+#- name: Synchronization of src on the control machine to dest on the remote host
+#  synchronize:
+#    src: "{{ item }}"
+#    dest: "{{ es_home }}"
+#  with_items:
+#    - "{{ plugin_security_policy_file}}"  
+
+
+- name: Ansible copy file to remote server
+  copy:
+    src: "{{playbook_dir}}/roles/elasticsearch-common/{{ item }}"
+    dest: "{{ es_home }}"
+  with_items:
+    - "{{ plugin_security_policy_file}}"
+
+#Copy the config template
+
+- name: Copy Configuration File
+  become: yes
+  template: 
+    src: elasticsearch.yml.j2 
+    dest: "{{ es_conf_dir }}/elasticsearch.yml"
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+    mode: 0644 
+    force: yes
+  register: system_change
+  notify: restart elasticsearch
+
+#Copy the systemd specific file if systemd is installed
+
+- name: Copy Systemd File 
+  become: yes
+  template: 
+    src: systemd/elasticsearch.service.j2 
+    dest: "{{ es_systemd_script }}" 
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+    mode: 0644 
+    force: yes
+  notify:
+  - reload systemd configuration
+  - restart elasticsearch
+
+#Copy the jvm.options
+
+- name: Copy jvm.options File 
+  become: yes
+  template: 
+    src: jvm.options.j2 
+    dest: "{{ es_conf_dir }}/jvm.options"
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}" 
+    mode: 0644 
+    force: yes
+  notify: restart elasticsearch
+
+- name: Dynamic fill of config files
+  vars:
+  template:
+   src: "{{ item.src }}"
+   dest: "{{ item.dest }}"
+   owner: "{{ es_user }}"
+   group: "{{ es_group }}"
+   mode: 0644
+   force: yes
+  loop:
+   - {src: 'sysctl.conf.j2', dest: '/etc/sysctl.conf'}
+   - {src: 'config.j2', dest: '/etc/selinux/config'}
+  register: task_result
+
+
+- name: Reboot if there was change in the sysctl.conf fnd selinux/conf file under the /etc folder
+  shell: "sleep 5 && reboot"
+  async: 1
+  poll: 0
+  when: task_result is changed
+
+
+- name: Wait for the reboot to complete if there was a change.
+  wait_for_connection:
+    connect_timeout: 2000
+    sleep: 5
+    delay: 5
+    timeout: 30000
+  when: task_result is changed

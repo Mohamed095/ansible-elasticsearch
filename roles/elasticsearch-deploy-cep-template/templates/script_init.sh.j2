@@ -1,0 +1,10 @@
+#!/bin/bash
+
+echo ------------------------------------------
+echo creating all mappings --------------------
+echo ------------------------------------------
+curl -S -X PUT {{ url_es }}/_template/cep_events?pretty -H "Content-Type: application/json" --data-binary @{{ template_tmp }}/template_cep_events.json
+curl -S -X PUT {{ url_es }}/_template/cep_decisions?pretty -H "Content-Type: application/json" --data-binary @{{ template_tmp }}/template_cep_decisions.json
+curl -S -X PUT {{ url_es }}/_template/cep_orders?pretty -H "Content-Type: application/json" --data-binary @{{ template_tmp }}/template_cep_orders.json
+echo ------------------------------------------
+echo

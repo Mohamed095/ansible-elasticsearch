@@ -1,0 +1,10 @@
+- hosts: es_node_1
+  become: yes
+  gather_facts: True
+  tasks:
+    - name: undeploy cep template
+      include_role:
+        name: elasticsearch-undeploy-cep-template
+      vars:
+        es_repo: elasticsearch-cep
+
